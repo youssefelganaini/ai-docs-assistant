@@ -76,3 +76,8 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+code,
+pre {
+  font-family: "Fira Code", "Courier New", Courier, monospace;
+}

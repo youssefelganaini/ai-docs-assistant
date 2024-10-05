@@ -1,31 +1,36 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { MessageCircle, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import ReactMarkdown from "react-markdown";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 // Simulated AI responses
 const aiResponses = [
   {
-    question: "How do I initialize a new project?",
+    question:
+      "What’s the best way to batch create multiple resources with minimal API requests?",
     answer:
-      "To initialize a new project, use the command `npm init` in your terminal. This will prompt you to enter details about your project and create a package.json file.",
+      'Our API supports batch operations to minimize the number of requests. Instead of creating resources one-by-one, you can use the `/batch` endpoint.\n\nExample request to create multiple users:\n\n```bash\nPOST https://api.example.com/v1/users/batch\n[\n  {\n    "name": "Alice",\n    "email": "alice@example.com"\n  },\n  {\n    "name": "Bob",\n    "email": "bob@example.com"\n  }\n]\n```\n\nThis will create both users in a single request, and the response will include the details of all newly created resources.',
   },
   {
-    question: "What is the difference between let and const?",
+    question:
+      "How can I handle rate limit exceeded errors and automatically retry my requests?",
     answer:
-      "In JavaScript, `let` allows you to declare variables that can be reassigned, while `const` is used for variables whose values will not change (constants). Both `let` and `const` are block-scoped.",
+      "When your API requests hit the rate limit, you'll receive a `429 Too Many Requests` response. To handle this, you should inspect the `Retry-After` header in the response, which tells you how long to wait before trying again.\n\nExample code:\n\n```javascript\nif (response.status === 429) {\n  const retryAfter = response.headers['Retry-After'];\n  setTimeout(() => {\n    // Retry the request after retryAfter seconds\n    sendRequest();\n  }, retryAfter * 1000);\n}\n```",
   },
   {
-    question: "How do I make an API request?",
+    question:
+      "How do I send a file along with JSON data in a single API request?",
     answer:
-      "You can make an API request using the `fetch` function. Here's an example:\n\n```javascript\nfetch('https://api.example.com/data')\n  .then(response => response.json())\n  .then(data => console.log(data))\n  .catch(error => console.error('Error:', error));\n```",
+      'Use `multipart/form-data` for this kind of request. Here’s an example in cURL:\n\n```bash\ncurl -X POST https://api.example.com/v1/upload \\\n-F "file=@path/to/file.jpg" \\\n-F "metadata={\\"description\\": \\"Profile picture\\"};type=application/json"\n```\n\nThis sends both the file and the metadata in a single request.',
   },
 ];
 
 export default function DocumentationAssistantOverlay() {
   const [isOpen, setIsOpen] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
   const [messages, setMessages] = useState([
     {
       role: "assistant",
@@ -34,15 +39,6 @@ export default function DocumentationAssistantOverlay() {
     },
   ]);
   const [input, setInput] = useState("");
-
-  useEffect(() => {
-    if (isOpen) {
-      setIsVisible(true);
-    } else {
-      const timer = setTimeout(() => setIsVisible(false), 300);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen]);
 
   const handleSend = () => {
     if (input.trim() === "") return;
@@ -69,6 +65,31 @@ export default function DocumentationAssistantOverlay() {
     setInput("");
   };
 
+  const MarkdownComponents = {
+    code({ node, inline, className, children, ...props }) {
+      const match = /language-(\w+)/.exec(className || "");
+      return !inline && match ? (
+        <SyntaxHighlighter
+          style={atomDark}
+          language={match[1]}
+          PreTag="div"
+          {...props}
+          customStyle={{
+            fontSize: "0.9rem", // Match the font size of the parent text
+            lineHeight: "1.25rem", // Match the line height
+            fontFamily: "'Fira Code', 'Courier New', Courier, monospace",
+          }}
+        >
+          {String(children).replace(/\n$/, "")}
+        </SyntaxHighlighter>
+      ) : (
+        <code className={className} {...props}>
+          {children}
+        </code>
+      );
+    },
+  };
+
   return (
     <>
       {!isOpen && (
@@ -77,15 +98,11 @@ export default function DocumentationAssistantOverlay() {
           onClick={() => setIsOpen(true)}
         >
           <MessageCircle className="h-6 w-6" />
-          <span className="sr-only">Open AI Assistant</span>
+          <span className="sr-only">AI Documentation Assistant</span>
         </Button>
       )}
-      {isVisible && (
-        <div
-          className={`fixed inset-y-0 right-0 w-96 bg-background border-l shadow-lg flex flex-col transition-transform duration-300 ease-in-out ${
-            isOpen ? "translate-x-0" : "translate-x-full"
-          }`}
-        >
+      {isOpen && (
+        <div className="fixed inset-y-0 right-0 w-96 bg-background border-l shadow-lg flex flex-col">
           <div className="flex justify-between items-center p-4 border-b">
             <h2 className="text-xl font-bold">AI Documentation Assistant</h2>
             <Button
@@ -97,7 +114,9 @@ export default function DocumentationAssistantOverlay() {
               <span className="sr-only">Close</span>
             </Button>
           </div>
-          <ScrollArea className="flex-grow p-4">
+          <ScrollArea className="flex-grow p-4 overflow-x-auto">
+            {" "}
+            {/* Allow horizontal scrolling */}
             {messages.map((message, index) => (
               <div
                 key={index}
@@ -106,17 +125,28 @@ export default function DocumentationAssistantOverlay() {
                 }`}
               >
                 <div
-                  className={`inline-block p-2 rounded-lg ${
+                  className={`inline-block p-2 rounded-lg break-words max-w-full ${
                     message.role === "user"
                       ? "bg-primary text-primary-foreground"
                       : "bg-secondary text-secondary-foreground"
                   }`}
+                  style={{ wordWrap: "break-word" }} // Ensures long words or code blocks wrap properly
                 >
-                  {message.content}
+                  {message.role === "assistant" ? (
+                    <ReactMarkdown
+                      components={MarkdownComponents}
+                      className="markdown-body"
+                    >
+                      {message.content}
+                    </ReactMarkdown>
+                  ) : (
+                    message.content
+                  )}
                 </div>
               </div>
             ))}
           </ScrollArea>
+
           <div className="p-4 border-t">
             <form
               onSubmit={(e) => {
