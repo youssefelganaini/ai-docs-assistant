@@ -10,22 +10,32 @@ import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 // Simulated AI responses
 const aiResponses = [
   {
-    question:
-      "What’s the best way to batch create multiple resources with minimal API requests?",
+    question: "How can I filter users by role in the /users endpoint?",
     answer:
-      'Our API supports batch operations to minimize the number of requests. Instead of creating resources one-by-one, you can use the `/batch` endpoint.\n\nExample request to create multiple users:\n\n```bash\nPOST https://api.example.com/v1/users/batch\n[\n  {\n    "name": "Alice",\n    "email": "alice@example.com"\n  },\n  {\n    "name": "Bob",\n    "email": "bob@example.com"\n  }\n]\n```\n\nThis will create both users in a single request, and the response will include the details of all newly created resources.',
+      "To filter users by role, use the `role` query parameter in your API request.\n\nExample:\n\n```bash\nGET https://api.example.com/v1/users?role=admin\n```\n\nThis will return a list of users with the `admin` role.",
   },
   {
     question:
-      "How can I handle rate limit exceeded errors and automatically retry my requests?",
+      "How do I update multiple resources at once using the /batch endpoint?",
     answer:
-      "When your API requests hit the rate limit, you'll receive a `429 Too Many Requests` response. To handle this, you should inspect the `Retry-After` header in the response, which tells you how long to wait before trying again.\n\nExample code:\n\n```javascript\nif (response.status === 429) {\n  const retryAfter = response.headers['Retry-After'];\n  setTimeout(() => {\n    // Retry the request after retryAfter seconds\n    sendRequest();\n  }, retryAfter * 1000);\n}\n```",
+      'You can update multiple resources in one API call using the `/batch` endpoint. Send a `PATCH` request with the resources and their updated values in an array.\n\nExample:\n\n```bash\nPATCH https://api.example.com/v1/resources/batch\n[\n  {\n    "id": 1,\n    "status": "active"\n  },\n  {\n    "id": 2,\n    "status": "inactive"\n  }\n]\n```',
+  },
+  {
+    question: "What does the limit parameter do in the /transactions endpoint?",
+    answer:
+      "The `limit` parameter specifies the maximum number of transactions to return in the response. For example, setting `limit=50` will return up to 50 transactions.\n\nExample:\n\n```bash\nGET https://api.example.com/v1/transactions?limit=50\n```",
   },
   {
     question:
-      "How do I send a file along with JSON data in a single API request?",
+      "How do I include related data when fetching a resource in the /orders endpoint?",
     answer:
-      'Use `multipart/form-data` for this kind of request. Here’s an example in cURL:\n\n```bash\ncurl -X POST https://api.example.com/v1/upload \\\n-F "file=@path/to/file.jpg" \\\n-F "metadata={\\"description\\": \\"Profile picture\\"};type=application/json"\n```\n\nThis sends both the file and the metadata in a single request.',
+      "To include related data (e.g., customer details) when fetching an order, use the `include` query parameter.\n\nExample:\n\n```bash\nGET https://api.example.com/v1/orders/123?include=customer\n```\n\nThis will return the order along with customer details.",
+  },
+  {
+    question:
+      "How do I perform a soft delete on a record using the /records endpoint?",
+    answer:
+      "To soft delete a record, use the `DELETE` method with the `soft=true` query parameter.\n\nExample:\n\n```bash\nDELETE https://api.example.com/v1/records/456?soft=true\n```",
   },
 ];
 
